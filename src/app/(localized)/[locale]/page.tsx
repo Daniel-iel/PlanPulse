@@ -1,6 +1,7 @@
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { formatNum } from '@/lib/format';
 import { isLocale, messages, type Locale } from '@/lib/i18n';
+import { withBasePath } from '@/lib/paths';
 import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-static';
@@ -14,12 +15,12 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
   return (
     <main className="landing">
       <header className="landing-header">
-        <a className="landing-brand" href={`/${locale}`} aria-label={t.home}>
+        <a className="landing-brand" href={withBasePath(`/${locale}`)} aria-label={t.home}>
           PLAN<span>/</span>PULSE
         </a>
         <nav className="landing-nav" aria-label={t.nav}>
           <a href="#how-it-works">{t.howLink}</a>
-          <a className="landing-nav-cta" href={`/${locale}/app`}>
+          <a className="landing-nav-cta" href={withBasePath(`/${locale}/app`)}>
             {t.openAnalyzer} <span aria-hidden="true">↗</span>
           </a>
           <LanguageSwitcher locale={locale} targetPath="home" />
@@ -32,7 +33,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
           <h1 id="hero-title">{t.heroBefore}<span>{t.heroHighlight}</span></h1>
           <p className="landing-lead">{t.lead}</p>
           <div className="landing-actions">
-            <a className="landing-button" href={`/${locale}/app`}>
+            <a className="landing-button" href={withBasePath(`/${locale}/app`)}>
               {t.analyze} <span aria-hidden="true">→</span>
             </a>
             <a className="landing-text-link" href="#how-it-works">{t.toolLink}</a>
@@ -103,15 +104,15 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
           <h2 id="privacy-title">{t.privacyTitle}</h2>
           <p>{t.privacyDescription}</p>
         </div>
-        <a className="landing-button landing-button-secondary" href={`/${locale}/app`}>
+        <a className="landing-button landing-button-secondary" href={withBasePath(`/${locale}/app`)}>
           {t.tryNow} <span aria-hidden="true">→</span>
         </a>
       </section>
 
       <footer className="landing-footer">
-        <a className="landing-brand" href={`/${locale}`}>PLAN<span>/</span>PULSE</a>
+        <a className="landing-brand" href={withBasePath(`/${locale}`)}>PLAN<span>/</span>PULSE</a>
         <p>{t.footerDescription}</p>
-        <a href={`/${locale}/app`}>{t.openAnalyzer} <span aria-hidden="true">↗</span></a>
+        <a href={withBasePath(`/${locale}/app`)}>{t.openAnalyzer} <span aria-hidden="true">↗</span></a>
       </footer>
     </main>
   );

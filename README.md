@@ -7,28 +7,32 @@ comparison history — all in your browser, with no backend.
 ## Rodando localmente
 
 ```bash
-npm install
+cd src
+npm ci
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000/en.
 
-- `/` — redirects to the English landing page (`/en`)
 - `/en` — English (United States)
 - `/pt` — Português (Brasil)
 - `/es` — Español (España)
 - `/<locale>/app` — interactive query-plan analyzer in the selected locale
-- `/app` — redirects to the English analyzer (`/en/app`)
-- `/pt-br` and `/es-es` — legacy routes that redirect to `/pt` and `/es`
 
 The language switcher keeps you on the same page when changing locales.
 
-## Build de produção
+## Build estático
 
 ```bash
+cd src
 npm run build
-npm run start
 ```
+
+The static site is generated in `src/out`. The GitHub Actions workflow builds
+it with the `/PlanPulse` base path and deploys it to
+`https://daniel-iel.github.io/PlanPulse/en/`. GitHub Pages must be configured
+once in **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+Pull requests validate the build; pushes to `main` publish it.
 
 ## Structure
 

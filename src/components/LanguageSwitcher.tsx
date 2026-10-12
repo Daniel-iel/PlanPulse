@@ -1,6 +1,7 @@
 'use client';
 
 import { LOCALES, localeInfo, messages, type Locale } from '@/lib/i18n';
+import { withBasePath } from '@/lib/paths';
 
 export default function LanguageSwitcher({
   locale,
@@ -19,7 +20,7 @@ export default function LanguageSwitcher({
       {LOCALES.map((option) => (
         <a
           key={option}
-          href={`/${option}${suffix}`}
+          href={withBasePath(`/${option}${suffix}`)}
           aria-current={option === locale ? 'page' : undefined}
           onClick={() => {
             if (option !== locale) onSwitch?.(option);
