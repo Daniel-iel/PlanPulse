@@ -1,7 +1,8 @@
 'use client';
 
 import type { HistoryEntry } from '@/lib/types';
-import { ptNum, formatRelativeTime } from '@/lib/format';
+import { formatNum, formatRelativeTime } from '@/lib/format';
+import { messages, type Locale } from '@/lib/i18n';
 
 interface Props {
   open: boolean;
@@ -13,6 +14,7 @@ interface Props {
   onDelete: (id: string) => void;
   onClearAll: () => void;
   onCompare: () => void;
+  locale: Locale;
 }
 
 export default function HistoryModal({
@@ -25,28 +27,29 @@ export default function HistoryModal({
   onDelete,
   onClearAll,
   onCompare,
+  locale,
 }: Props) {
   if (!open) return null;
+  const t = messages[locale].app;
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal-box">
         <div className="modal-head">
-          <h2>Histórico de planos</h2>
-          <button className="btn-ghost" onClick={onClose}>✕</button>
+          <h2>{t.historyTitle}</h2>
+          <button className="btn-ghost" onClick={onClose} aria-label={t.close}>✕</button>
         </div>
         <div className="modal-body">
           <div className="history-toolbar">
             <span className="insp-hint" style={{ fontSize: 11.5 }}>
-              Salvo automaticamente neste navegador. Selecione até 2 para comparar.
+              {t.historyDescription}
             </span>
-            <button className="btn-ghost" onClick={onClearAll}>Limpar tudo</button>
+            <button className="btn-ghost" onClick={onClearAll}>{t.clearAll}</button>
           </div>
 
           {!history.length ? (
             <div className="note" style={{ padding: '20px 0' }}>
-              Nenhum plano salvo ainda. Toda vez que você analisar um plano, ele é guardado aqui
-              automaticamente (só neste navegador).
+              {t.noHistory}
             </div>
           ) : (
             <div className="history-list">
@@ -58,18 +61,19 @@ export default function HistoryModal({
                     <input
                       type="checkbox"
                       className="hist-check"
+                      aria-label={`${t.selectForCompare}: ${entry.label}`}
                       checked={compareSelection.has(entry.id)}
                       onChange={(e) => onToggleCompare(entry.id, e.target.checked)}
                     />
                     <div className="hist-body" onClick={() => onLoad(entry.id)}>
                       <div className="hist-label">{entry.label}</div>
                       <div className="hist-meta">
-                        {formatRelativeTime(entry.savedAt)} ·{' '}
-                        {s.executionTime != null ? ptNum(s.executionTime, 2) + 'ms' : 'sem ANALYZE'} ·{' '}
-                        <span className={`chip-inline ${wClass}`}>{s.warningsCount} avisos</span>
+                        {formatRelativeTime(entry.savedAt, locale)} ·{' '}
+                        {s.executionTime != null ? formatNum(s.executionTime, 2, locale) + 'ms' : t.noAnalyze} ·{' '}
+                        <span className={`chip-inline ${wClass}`}>{s.warningsCount} {t.savedWarnings}</span>
                       </div>
                     </div>
-                    <button className="hist-del" title="Excluir" onClick={() => onDelete(entry.id)}>✕</button>
+                    <button className="hist-del" title={t.delete} aria-label={t.delete} onClick={() => onDelete(entry.id)}>✕</button>
                   </div>
                 );
               })}
@@ -78,7 +82,7 @@ export default function HistoryModal({
 
           <div className="compare-bar">
             <button className="btn-primary" disabled={compareSelection.size !== 2} onClick={onCompare}>
-              Comparar selecionados
+              {t.compareSelected}
             </button>
           </div>
         </div>

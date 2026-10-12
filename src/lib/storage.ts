@@ -1,5 +1,7 @@
 import type { AnalyzedPlan, HistoryEntry } from './types';
 import { labelFor, summaryOf } from './analyze';
+import { analyzePlan } from './analyze';
+import type { Locale } from './i18n';
 
 const HISTORY_KEY = 'ppulse:history';
 const MAX_HISTORY = 25;
@@ -23,15 +25,39 @@ function safeSetItem(key: string, value: string): boolean {
   }
 }
 
-export function loadHistory(): HistoryEntry[] {
+export function loadHistory(locale: Locale): HistoryEntry[] {
   const raw = safeGetItem(HISTORY_KEY);
   if (!raw) return [];
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    parsed = JSON.parse(raw);
   } catch {
     return [];
   }
+  if (!Array.isArray(parsed)) return [];
+  return parsed.map((value: unknown) => {
+    if (
+      typeof value !== 'object' ||
+      value === null ||
+      !('id' in value) ||
+      typeof value.id !== 'string' ||
+      !('savedAt' in value) ||
+      typeof value.savedAt !== 'string' ||
+      !('rawInput' in value) ||
+      typeof value.rawInput !== 'string'
+    ) {
+      throw new Error('Saved history entry is malformed.');
+    }
+    const plan = analyzePlan(value.rawInput, locale);
+    return {
+      id: value.id,
+      savedAt: value.savedAt,
+      rawInput: value.rawInput,
+      label: labelFor(plan, locale),
+      format: plan.format,
+      summary: summaryOf(plan),
+    };
+  });
 }
 
 function persist(list: HistoryEntry[]): boolean {
@@ -39,23 +65,23 @@ function persist(list: HistoryEntry[]): boolean {
 }
 
 /** Prepends a new entry for this analyzed plan and persists the (capped) list. */
-export function saveToHistory(plan: AnalyzedPlan): HistoryEntry[] {
+export function saveToHistory(plan: AnalyzedPlan, locale: Locale): HistoryEntry[] {
   const entry: HistoryEntry = {
     id: `run_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     savedAt: new Date().toISOString(),
-    label: labelFor(plan),
+    label: labelFor(plan, locale),
     format: plan.format,
     rawInput: plan.rawInput,
     summary: summaryOf(plan),
   };
-  let list = loadHistory();
+  let list = loadHistory(locale);
   list = [entry, ...list].slice(0, MAX_HISTORY);
   persist(list);
   return list;
 }
 
-export function deleteHistoryEntry(id: string): HistoryEntry[] {
-  const list = loadHistory().filter((e) => e.id !== id);
+export function deleteHistoryEntry(id: string, locale: Locale): HistoryEntry[] {
+  const list = loadHistory(locale).filter((e) => e.id !== id);
   persist(list);
   return list;
 }

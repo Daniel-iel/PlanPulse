@@ -1,8 +1,9 @@
 'use client';
 
 import type { PlanNode, Warning } from '@/lib/types';
-import { ptNum } from '@/lib/format';
+import { formatNum } from '@/lib/format';
 import { colorForPct, CARD_W, CARD_H } from '@/lib/treeLayout';
+import { messages, type Locale } from '@/lib/i18n';
 
 interface Props {
   node: PlanNode;
@@ -16,6 +17,7 @@ interface Props {
   onHover: (e: React.MouseEvent, node: PlanNode, warnings: Warning[]) => void;
   onMove: (e: React.MouseEvent) => void;
   onLeave: () => void;
+  locale: Locale;
 }
 
 function severityRank(sev: Warning['severity']) {
@@ -34,7 +36,9 @@ export default function PlanCard({
   onHover,
   onMove,
   onLeave,
+  locale,
 }: Props) {
+  const t = messages[locale].app;
   const color = colorForPct(node.pctOfTotal);
   const ratio =
     node.planRows && node.actualRows != null && node.planRows > 0 ? node.actualRows / node.planRows : null;
@@ -46,9 +50,9 @@ export default function PlanCard({
     worstSev === 'critical' ? 'var(--hot)' : worstSev === 'warning' ? 'var(--warm)' : 'var(--cool)';
   const timeLabel = hasActual
     ? node.exclusiveWeight != null
-      ? ptNum(node.exclusiveWeight, node.exclusiveWeight < 10 ? 2 : 1) + 'ms'
+      ? formatNum(node.exclusiveWeight, node.exclusiveWeight < 10 ? 2 : 1, locale) + 'ms'
       : '–'
-    : ptNum(node.totalCost, 0);
+    : formatNum(node.totalCost, 0, locale);
 
   let classes = 'plan-card';
   if (isPathActive) classes += ' path-active';
@@ -81,22 +85,22 @@ export default function PlanCard({
         {node.relationName
           ? node.relationName + (node.alias ? ' ' + node.alias : '')
           : node.indexCond
-          ? 'index scan'
+          ? t.indexScan
           : '—'}
       </div>
       <div className="card-metric">
         <span className="metric-value" style={{ color }}>
           {timeLabel}
         </span>
-        {node.pctOfTotal != null && <span className="metric-pct">{ptNum(node.pctOfTotal, 1)}%</span>}
+        {node.pctOfTotal != null && <span className="metric-pct">{formatNum(node.pctOfTotal, 1, locale)}%</span>}
       </div>
       <div className="card-bar">
         <div className="card-bar-fill" style={{ width: `${Math.max(2, node.pctOfTotal || 0)}%`, background: color }} />
       </div>
       <div className="card-tags">
         <span className={`tag ${mismatch ? 'mismatch' : ''}`}>
-          rows {ptNum(node.planRows, 0)}
-          {node.actualRows != null ? '→' + ptNum(node.actualRows, 0) : ''}
+          {t.rows} {formatNum(node.planRows, 0, locale)}
+          {node.actualRows != null ? '→' + formatNum(node.actualRows, 0, locale) : ''}
         </span>
         {node.actualLoops && node.actualLoops > 1 && <span className="tag">×{node.actualLoops}</span>}
       </div>

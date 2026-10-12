@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { messages, type Locale } from '@/lib/i18n';
 
-export default function CopyButton({ text }: { text: string }) {
+export default function CopyButton({ text, locale }: { text: string; locale: Locale }) {
   const [copied, setCopied] = useState(false);
+  const t = messages[locale].app;
 
   const handleClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -18,7 +20,7 @@ export default function CopyButton({ text }: { text: string }) {
 
   return (
     <button className="copy-btn" onClick={handleClick}>
-      {copied ? 'Copiado!' : 'Copiar'}
+      {copied ? t.copied : t.copy}
     </button>
   );
 }

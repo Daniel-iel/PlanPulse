@@ -1,3 +1,5 @@
+import type { WarningCode } from './i18n';
+
 // Shape produced directly by the parsers (text EXPLAIN output or FORMAT JSON),
 // before metrics (self-time, % of total, ids) have been computed.
 export interface RawNode {
@@ -53,6 +55,7 @@ export interface ParsedPlan {
 export type Severity = 'critical' | 'warning' | 'info';
 
 export interface Warning {
+  code: WarningCode;
   severity: Severity;
   nodeId: number;
   title: string;
@@ -82,7 +85,7 @@ export interface HistorySummary {
   hasActual: boolean;
   bottleneckLabel: string | null;
   bottleneckPct: number | null;
-  /** `${title}|${relationOrNodeType}` keys, used to diff two runs' warning sets */
+  /** Locale-neutral `${warningCode}|${relationOrNodeType}` keys used to compare runs. */
   warningKeys: string[];
 }
 

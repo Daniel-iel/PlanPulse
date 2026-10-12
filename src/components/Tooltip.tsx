@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { PlanNode, Warning } from '@/lib/types';
-import { ptNum } from '@/lib/format';
+import { formatNum } from '@/lib/format';
+import { messages, type Locale } from '@/lib/i18n';
 
 interface Props {
   node: PlanNode | null;
@@ -10,9 +11,10 @@ interface Props {
   hasActual: boolean;
   x: number;
   y: number;
+  locale: Locale;
 }
 
-export default function Tooltip({ node, warnings, hasActual, x, y }: Props) {
+export default function Tooltip({ node, warnings, hasActual, x, y, locale }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [pos, setPos] = useState({ left: x + 16, top: y + 16 });
 
@@ -25,6 +27,7 @@ export default function Tooltip({ node, warnings, hasActual, x, y }: Props) {
   }, [x, y, node]);
 
   if (!node) return null;
+  const t = messages[locale].app;
 
   return (
     <div className="tooltip" ref={ref} style={{ left: pos.left, top: pos.top }}>
@@ -34,43 +37,41 @@ export default function Tooltip({ node, warnings, hasActual, x, y }: Props) {
       </div>
       {hasActual && node.pctOfTotal != null && (
         <div className="t-row">
-          <span>tempo próprio</span>
+          <span>{t.selfTime}</span>
           <b>
-            {ptNum(node.exclusiveWeight, 2)}ms ({ptNum(node.pctOfTotal, 1)}%)
+            {formatNum(node.exclusiveWeight, 2, locale)}ms ({formatNum(node.pctOfTotal, 1, locale)}%)
           </b>
         </div>
       )}
       {node.actualTotalTime != null && (
         <div className="t-row">
-          <span>tempo total (por loop)</span>
-          <b>{ptNum(node.actualTotalTime, 2)}ms</b>
+          <span>{t.timePerLoop}</span>
+          <b>{formatNum(node.actualTotalTime, 2, locale)}ms</b>
         </div>
       )}
       <div className="t-row">
-        <span>custo</span>
+        <span>{t.estimatedCost}</span>
         <b>
-          {ptNum(node.startupCost, 1)} .. {ptNum(node.totalCost, 1)}
+          {formatNum(node.startupCost, 1, locale)} .. {formatNum(node.totalCost, 1, locale)}
         </b>
       </div>
       <div className="t-row">
-        <span>linhas</span>
+        <span>{t.rows}</span>
         <b>
-          {ptNum(node.planRows, 0)}
-          {node.actualRows != null ? ' → ' + ptNum(node.actualRows, 0) : ''}
+          {formatNum(node.planRows, 0, locale)}
+          {node.actualRows != null ? ' → ' + formatNum(node.actualRows, 0, locale) : ''}
         </b>
       </div>
       {node.actualLoops != null && node.actualLoops > 1 && (
         <div className="t-row">
-          <span>loops</span>
+          <span>{t.loops}</span>
           <b>{node.actualLoops}</b>
         </div>
       )}
       {warnings.length > 0 ? (
-        <div className="t-foot">
-          ⚠ {warnings.length} aviso{warnings.length > 1 ? 's' : ''} — clique para detalhes
-        </div>
+        <div className="t-foot">⚠ {warnings.length} {warnings.length === 1 ? t.warningCountSingular : t.warningCountPlural} — {t.clickForDetails}</div>
       ) : (
-        <div className="t-foot">clique para detalhes e realçar o caminho</div>
+        <div className="t-foot">{t.clickToHighlight}</div>
       )}
     </div>
   );

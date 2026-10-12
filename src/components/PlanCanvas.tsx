@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AnalyzedPlan, PlanNode, Warning } from '@/lib/types';
 import { computeLayout, CARD_W, CARD_H, elbowPath } from '@/lib/treeLayout';
-import { ptNum } from '@/lib/format';
+import { formatNum } from '@/lib/format';
+import { messages, type Locale } from '@/lib/i18n';
 import { usePanZoom } from '@/hooks/usePanZoom';
 import PlanCard from './PlanCard';
 import Tooltip from './Tooltip';
@@ -12,9 +13,10 @@ interface Props {
   plan: AnalyzedPlan;
   selectedId: number | null;
   onSelect: (id: number | null) => void;
+  locale: Locale;
 }
 
-export default function PlanCanvas({ plan, selectedId, onSelect }: Props) {
+export default function PlanCanvas({ plan, selectedId, onSelect, locale }: Props) {
   const { positions, width, height } = useMemo(() => computeLayout(plan.root), [plan.root]);
   const { viewportRef, transform, zoomBy, fitToScreen, onPointerDownBackground, onPointerMoveBackground, onPointerUpBackground } =
     usePanZoom({ width, height });
@@ -89,7 +91,9 @@ export default function PlanCanvas({ plan, selectedId, onSelect }: Props) {
               const midY = (y1 + y2) / 2;
               const active = pathIds ? pathIds.has(node.id) && pathIds.has(parent.id) : false;
               const dimmed = pathIds ? !active : false;
-              const label = plan.hasActual && node.actualRows != null ? `${ptNum(node.actualRows, 0)} rows` : null;
+              const label = plan.hasActual && node.actualRows != null
+                ? `${formatNum(node.actualRows, 0, locale)} ${messages[locale].app.rows}`
+                : null;
               const textW = label ? Math.max(46, label.length * 6.2) : 0;
               const d = elbowPath(x1, y1, x2, y2);
               return (
@@ -133,6 +137,7 @@ export default function PlanCanvas({ plan, selectedId, onSelect }: Props) {
                   onHover={(e, n, w) => setHover({ node: n, warnings: w, x: e.clientX, y: e.clientY })}
                   onMove={(e) => setHover((h) => (h ? { ...h, x: e.clientX, y: e.clientY } : h))}
                   onLeave={() => setHover(null)}
+                  locale={locale}
                 />
               );
             })}
@@ -141,17 +146,17 @@ export default function PlanCanvas({ plan, selectedId, onSelect }: Props) {
       </div>
 
       <div className="canvas-toolbar">
-        <button onClick={() => zoomBy(1.2)} title="Aumentar zoom">+</button>
-        <button onClick={() => zoomBy(0.83)} title="Diminuir zoom">–</button>
-        <button onClick={fitToScreen} title="Ajustar à tela">⤢</button>
+        <button onClick={() => zoomBy(1.2)} title={messages[locale].app.zoomIn}>+</button>
+        <button onClick={() => zoomBy(0.83)} title={messages[locale].app.zoomOut}>–</button>
+        <button onClick={fitToScreen} title={messages[locale].app.fitScreen}>⤢</button>
       </div>
       <div className="canvas-hint">
-        <span>arraste para navegar · role para zoom · clique num card para ver o caminho</span>
+        <span>{messages[locale].app.canvasHint}</span>
         <span className="legend-bar" />
       </div>
 
       {hover && (
-        <Tooltip node={hover.node} warnings={hover.warnings} hasActual={plan.hasActual} x={hover.x} y={hover.y} />
+        <Tooltip node={hover.node} warnings={hover.warnings} hasActual={plan.hasActual} x={hover.x} y={hover.y} locale={locale} />
       )}
     </div>
   );

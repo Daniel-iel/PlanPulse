@@ -1,19 +1,22 @@
 'use client';
 
 import type { AnalyzedPlan } from '@/lib/types';
-import { ptNum } from '@/lib/format';
+import { formatNum } from '@/lib/format';
 import CopyButton from './CopyButton';
+import { messages, type Locale } from '@/lib/i18n';
 
 interface Props {
   plan: AnalyzedPlan;
   selectedId: number | null;
+  locale: Locale;
 }
 
-export default function Inspector({ plan, selectedId }: Props) {
+export default function Inspector({ plan, selectedId, locale }: Props) {
+  const t = messages[locale].app;
   if (selectedId == null) {
     return (
       <div className="inspector-body">
-        <p className="insp-hint">Clique em um card do diagrama para ver os detalhes do nó.</p>
+        <p className="insp-hint">{t.inspectorHint}</p>
       </div>
     );
   }
@@ -22,7 +25,7 @@ export default function Inspector({ plan, selectedId }: Props) {
   if (!n) {
     return (
       <div className="inspector-body">
-        <p className="insp-hint">Nó não encontrado.</p>
+        <p className="insp-hint">{t.nodeNotFound}</p>
       </div>
     );
   }
@@ -35,74 +38,74 @@ export default function Inspector({ plan, selectedId }: Props) {
     <div className="inspector-body">
       <div className="insp-title">{n.nodeType}</div>
       <div className="insp-sub">
-        {n.relationName ? n.relationName + (n.alias ? ' ' + n.alias : '') : '(sem relação associada)'}
+        {n.relationName ? n.relationName + (n.alias ? ' ' + n.alias : '') : t.noRelation}
       </div>
       <div className="insp-metrics">
         <div className="row">
-          <span>custo estimado</span>
+          <span>{t.estimatedCost}</span>
           <span>
-            {ptNum(n.startupCost, 1)} .. {ptNum(n.totalCost, 1)}
+            {formatNum(n.startupCost, 1, locale)} .. {formatNum(n.totalCost, 1, locale)}
           </span>
         </div>
         <div className="row">
-          <span>linhas est. → real</span>
+          <span>{t.estimatedActualRows}</span>
           <span className={mismatch ? 'mismatch' : ''}>
-            {ptNum(n.planRows, 0)} → {n.actualRows != null ? ptNum(n.actualRows, 0) : '–'}
+            {formatNum(n.planRows, 0, locale)} → {n.actualRows != null ? formatNum(n.actualRows, 0, locale) : '–'}
           </span>
         </div>
         {n.actualTotalTime != null && (
           <div className="row">
-            <span>tempo (por loop)</span>
+            <span>{t.timePerLoop}</span>
             <span>
-              {ptNum(n.actualStartupTime, 2)} .. {ptNum(n.actualTotalTime, 2)}ms
+              {formatNum(n.actualStartupTime, 2, locale)} .. {formatNum(n.actualTotalTime, 2, locale)}ms
             </span>
           </div>
         )}
         {n.actualLoops != null && (
           <div className="row">
-            <span>loops</span>
+            <span>{t.loops}</span>
             <span>{n.actualLoops}</span>
           </div>
         )}
         {n.pctOfTotal != null && (
           <div className="row">
-            <span>tempo próprio</span>
+            <span>{t.selfTime}</span>
             <span>
-              {ptNum(n.exclusiveWeight, 2)}
-              {plan.hasActual ? 'ms' : ''} ({ptNum(n.pctOfTotal, 1)}%)
+              {formatNum(n.exclusiveWeight, 2, locale)}
+              {plan.hasActual ? 'ms' : ''} ({formatNum(n.pctOfTotal, 1, locale)}%)
             </span>
           </div>
         )}
       </div>
 
-      {n.filter && <div className="insp-detail"><span>Filter</span>{n.filter}</div>}
-      {n.indexCond && <div className="insp-detail"><span>Index Cond</span>{n.indexCond}</div>}
-      {n.hashCond && <div className="insp-detail"><span>Hash Cond</span>{n.hashCond}</div>}
-      {n.sortKey && <div className="insp-detail"><span>Sort Key</span>{n.sortKey}</div>}
+      {n.filter && <div className="insp-detail"><span>{t.filter}</span>{n.filter}</div>}
+      {n.indexCond && <div className="insp-detail"><span>{t.indexCondition}</span>{n.indexCond}</div>}
+      {n.hashCond && <div className="insp-detail"><span>{t.hashCondition}</span>{n.hashCond}</div>}
+      {n.sortKey && <div className="insp-detail"><span>{t.sortKey}</span>{n.sortKey}</div>}
       {n.sortMethod && (
         <div className="insp-detail">
-          <span>Sort Method</span>
-          {n.sortMethod} ({n.sortSpaceType || ''} {n.sortSpaceUsed || ''}kB)
+          <span>{t.sortMethod}</span>
+          {n.sortMethod} ({n.sortSpaceType || ''} {formatNum(n.sortSpaceUsed, 0, locale)}kB)
         </div>
       )}
       {n.rowsRemovedByFilter != null && n.rowsRemovedByFilter > 0 && (
-        <div className="insp-detail"><span>Rows Removed</span>{ptNum(n.rowsRemovedByFilter, 0)}</div>
+        <div className="insp-detail"><span>{t.rowsRemoved}</span>{formatNum(n.rowsRemovedByFilter, 0, locale)}</div>
       )}
       {n.bufferHit != null && (
-        <div className="insp-detail"><span>Buffers</span>hit={n.bufferHit} read={n.bufferRead || 0}</div>
+        <div className="insp-detail"><span>{t.buffers}</span>hit={n.bufferHit} read={n.bufferRead || 0}</div>
       )}
 
       {nodeWarnings.map((w, i) => (
         <div className="insp-warning" key={i}>
           <span className={`sev-pill sev-${w.severity}`}>
-            {w.severity === 'critical' ? 'CRÍTICO' : w.severity === 'warning' ? 'ATENÇÃO' : 'INFO'}
+            {w.severity === 'critical' ? t.critical : w.severity === 'warning' ? t.warning : t.info}
           </span>
           <div className="diag-body">
             <div className="diag-title" style={{ fontSize: 12 }}>{w.title}</div>
             {w.suggestion && (
               <div className="suggestion">
                 <code>{w.suggestion}</code>
-                <CopyButton text={w.suggestion} />
+                <CopyButton text={w.suggestion} locale={locale} />
               </div>
             )}
           </div>

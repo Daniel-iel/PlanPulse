@@ -1,5 +1,6 @@
 import type { PlanNode, Warning } from './types';
-import { ptNum } from './format';
+import { formatNum } from './format';
+import { messages, type Locale } from './i18n';
 
 export function extractColumns(condText: string | null): string[] {
   if (!condText) return [];
@@ -12,23 +13,27 @@ export function extractColumns(condText: string | null): string[] {
 
 /** `title|relationOrNodeType` — used both for display and for diffing two runs. */
 export function warningKey(w: Warning, node: PlanNode): string {
-  return `${w.title}|${node.relationName || node.nodeType}`;
+  return `${w.code}|${node.relationName || node.nodeType}`;
 }
 
-export function generateWarnings(all: PlanNode[], hasActual: boolean): Warning[] {
+export function generateWarnings(all: PlanNode[], hasActual: boolean, locale: Locale): Warning[] {
   const warnings: Warning[] = [];
   if (!hasActual) return warnings;
+  const t = messages[locale].warning;
 
   for (const n of all) {
     if (n.pctOfTotal != null && n.pctOfTotal >= 30) {
       warnings.push({
+        code: 'bottleneck',
         severity: 'critical',
         nodeId: n.id,
-        title: 'Gargalo de execução',
-        text: `"${n.nodeType}"${n.relationName ? ` em "${n.relationName}"` : ''} concentra ${ptNum(
-          n.pctOfTotal,
-          1
-        )}% do tempo total de execução (${ptNum(n.exclusiveWeight, 2)}ms exclusivos).`,
+        title: t.bottleneckTitle,
+        text: t.bottleneck(
+          n.nodeType,
+          n.relationName || '',
+          formatNum(n.pctOfTotal, 1, locale),
+          formatNum(n.exclusiveWeight, 2, locale)
+        ),
       });
     }
 
@@ -37,15 +42,18 @@ export function generateWarnings(all: PlanNode[], hasActual: boolean): Warning[]
       if (n.rowsRemovedByFilter > 1000 && n.rowsRemovedByFilter > kept * 5) {
         const cols = extractColumns(n.filter);
         const suggestion = cols.length
-          ? `CREATE INDEX ON ${n.relationName || 'tabela'} (${cols.join(', ')});`
+          ? t.createIndex(n.relationName || (locale === 'en' ? 'table' : locale === 'pt' ? 'tabela' : 'tabla'), cols.join(', '))
           : null;
         warnings.push({
+          code: 'seq-scan',
           severity: n.rowsRemovedByFilter > 20000 ? 'critical' : 'warning',
           nodeId: n.id,
-          title: 'Seq Scan varrendo muitas linhas',
-          text: `${ptNum(n.rowsRemovedByFilter, 0)} linhas foram descartadas pelo filtro em "${
-            n.relationName || n.nodeType
-          }" — só ${ptNum(kept, 0)} eram necessárias.`,
+          title: t.seqScanTitle,
+          text: t.seqScan(
+            formatNum(n.rowsRemovedByFilter, 0, locale),
+            n.relationName || n.nodeType,
+            formatNum(kept, 0, locale)
+          ),
           suggestion,
         });
       }
@@ -55,56 +63,59 @@ export function generateWarnings(all: PlanNode[], hasActual: boolean): Warning[]
       const ratio = n.actualRows / n.planRows;
       if ((ratio > 10 || ratio < 0.1) && (n.actualRows > 50 || n.planRows > 50)) {
         warnings.push({
+          code: 'row-estimate',
           severity: 'warning',
           nodeId: n.id,
-          title: 'Estimativa de linhas desalinhada',
-          text: `O planner estimou ${ptNum(n.planRows, 0)} linhas para "${n.nodeType}", mas encontrou ${ptNum(
-            n.actualRows,
-            0
-          )}. Estatísticas desatualizadas podem levar a planos ruins.`,
-          suggestion: n.relationName ? `ANALYZE ${n.relationName};` : null,
+          title: t.estimateTitle,
+          text: t.estimate(
+            formatNum(n.planRows, 0, locale),
+            n.nodeType,
+            formatNum(n.actualRows, 0, locale)
+          ),
+          suggestion: n.relationName ? t.analyze(n.relationName) : null,
         });
       }
     }
 
     if (n.sortSpaceType && n.sortSpaceType.toLowerCase() === 'disk') {
       warnings.push({
+        code: 'disk-sort',
         severity: 'critical',
         nodeId: n.id,
-        title: 'Sort estourou para disco',
-        text: `"${n.nodeType}" precisou de ${n.sortSpaceUsed}kB em disco para ordenar — bem mais lento que ordenar em memória.`,
-        suggestion: 'Considere aumentar work_mem para esta sessão/query.',
+        title: t.diskSortTitle,
+        text: t.diskSort(n.nodeType, formatNum(n.sortSpaceUsed, 0, locale)),
+        suggestion: t.increaseWorkMem,
       });
     }
 
     if (n.hashBatches && n.hashBatches > 1) {
       warnings.push({
+        code: 'hash-batches',
         severity: 'warning',
         nodeId: n.id,
-        title: 'Hash Join dividiu em batches',
-        text: `"${n.nodeType}" usou ${n.hashBatches} batches — a tabela hash não coube inteira em memória.`,
-        suggestion: 'Considere aumentar work_mem.',
+        title: t.hashBatchesTitle,
+        text: t.hashBatches(n.nodeType, n.hashBatches),
+        suggestion: t.increaseWorkMemShort,
       });
     }
 
     if (n.actualLoops && n.actualLoops > 1000) {
       warnings.push({
+        code: 'many-loops',
         severity: n.actualLoops > 10000 ? 'critical' : 'warning',
         nodeId: n.id,
-        title: 'Nó executado muitas vezes',
-        text: `"${n.nodeType}" rodou ${ptNum(
-          n.actualLoops,
-          0
-        )} vezes (dentro de um Nested Loop). Um custo pequeno por execução pode somar bastante.`,
+        title: t.loopsTitle,
+        text: t.loops(n.nodeType, formatNum(n.actualLoops, 0, locale)),
       });
     }
 
     if (n.bufferRead && n.bufferHit != null && n.bufferRead > n.bufferHit && n.bufferRead > 10) {
       warnings.push({
+        code: 'disk-read',
         severity: 'info',
         nodeId: n.id,
-        title: 'Leitura de disco significativa',
-        text: `"${n.nodeType}" leu ${n.bufferRead} blocos do disco contra ${n.bufferHit} vindos do cache.`,
+        title: t.diskReadTitle,
+        text: t.diskRead(n.nodeType, n.bufferRead, n.bufferHit),
       });
     }
   }
